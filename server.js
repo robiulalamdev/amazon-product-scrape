@@ -3,10 +3,10 @@ const puppeteer = require("puppeteer");
 const cors = require("cors");
 
 const app = express();
-const PORT = 3000;
+const PORT = 9700;
 
 // add cors allow for 3001 port
-app.use(cors({ origin: "http://localhost:3001" }));
+app.use(cors({ origin: ["http://localhost:3000", "http://localhost:3001"] }));
 
 // Global browser instance
 let browser = null;
@@ -150,6 +150,23 @@ const scrapeAmazonProduct = async (asin) => {
     if (page) await page.close();
   }
 };
+
+app.get("/products/:asin", async (req, res) => {
+  const asin = req.params.asin;
+
+  if (!asin) {
+    return res.status(400).json({ error: "ASIN is required" });
+  }
+
+  try {
+    await initBrowser();
+    const productData = await scrapeAmazonProduct(asin);
+    res.json(productData);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.get("/scrape", async (req, res) => {
   const url = req.query.url;
@@ -450,22 +467,6 @@ app.get("/products", async (req, res) => {
   } catch (error) {
     console.error("Scraping error:", error);
     res.status(500).json({ error: "Scraping failed", details: error.message });
-  }
-});
-
-app.get("/products/:asin", async (req, res) => {
-  const asin = req.query.asin;
-
-  if (!asin) {
-    return res.status(400).json({ error: "ASIN is required" });
-  }
-
-  try {
-    await initBrowser();
-    const productData = await scrapeAmazonProduct(asin);
-    res.json(productData);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
   }
 });
 
